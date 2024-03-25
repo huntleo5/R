@@ -1,0 +1,117 @@
+---
+title: "R Project Flex Dashboard"
+author: "Huntley Oliver"
+date: "2023-10-24"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(DT)
+library(stringr)
+library(dplyr)
+library(tidyverse)
+setwd("C:/Users/huntl/Desktop/Data Science/DSA 803/Projects/R Project")
+
+stats <- read.csv("College Football Team Stats 2022.csv")
+rankings <- read.csv("rankings 2022.csv")
+rankings <- rankings %>%
+  rename(Team = School)
+
+clean_stats <- stats[, c("Team", "Games", "Off.Yards", "Off.TDs", "Pass.Attempts", "Pass.Completions", "Interceptions.Thrown_x", "Pass.Yards", "Pass.Touchdowns", "Pass.Yards.Per.Game", "Rush.Attempts", "Rush.Yds", "Yards.Rush", "Rushing.TD", "Rushing.Yards.per.Game", "Touchdowns", "Total.Points", "Points.Per.Game")]
+
+rankings$TeamWins <- as.integer(str_extract(rankings$Record, "\\d+"))
+rankings[1, "Team"] <- "Georgia"
+
+
+clean_stats[5, "Team"] <- "Georgia"
+clean_stats[27, "Team"] <- "TCU"
+clean_stats[24, "Team"] <- "Michigan"
+clean_stats[9, "Team"] <- "Ohio State"
+clean_stats[11, "Team"] <- "Alabama"
+clean_stats[1, "Team"] <- "Tennessee"
+clean_stats[34, "Team"] <- "Penn State"
+clean_stats[2, "Team"] <- "Washington"
+clean_stats[31, "Team"] <- "Tulane"
+clean_stats[17, "Team"] <- "Utah"
+clean_stats[10, "Team"] <- "Florida State"
+clean_stats[3, "Team"] <- "USC"
+clean_stats[48, "Team"] <- "Clemson"
+clean_stats[41, "Team"] <- "Kansas State"
+clean_stats[6, "Team"] <- "Oregon"
+clean_stats[28, "Team"] <- "LSU"
+clean_stats[61, "Team"] <- "Oregon State"
+clean_stats[60, "Team"] <- "Notre Dame"
+clean_stats[95, "Team"] <- "Troy"
+clean_stats[62, "Team"] <- "Mississippi State"
+clean_stats[4, "Team"] <- "UCLA"
+clean_stats[50, "Team"] <- "Pittsburgh"
+clean_stats[73, "Team"] <- "South Carolina"
+clean_stats[53, "Team"] <- "Fresno State"
+clean_stats[35, "Team"] <- "Texas"
+
+
+top25 <- left_join(rankings, clean_stats, by="Team")
+```
+
+
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+
+```{r, echo=FALSE}
+selectInput(inputId = "Statistics",
+            label = "Select a Statistic",
+            choices = c("Final 2022 AP Ranking"="Ranking",
+                        "Total Wins"="TeamWins",
+                        "Offensive Yards"="Off.Yards",
+                        "Offensive Touchdowns"="Off.TDs",
+                        "Passing Attempts"="Pass.Attempts",
+                        "Passing Completions"="Pass.Completions",
+                        "Interceptions Thrown"="Interceptions.Thrown_x",
+                        "Passing Yards"="Pass.Yards",
+                        "Passing Touchdowns"="Pass.Touchdowns",
+                        "Passing Yards per Game"="Pass.Yards.Per.Game",
+                        "Rushing Attempts"="Rush.Attempts",
+                        "Rushing Yards"="Rush.Yds",
+                        "Yards per Rush"="Yards.Rush",
+                        "Rushing Touchdowns"="Rushing.TD",
+                        "Rushing Yards per Game"="Rushing.Yards.per.Game",
+                        "Touchdowns Scored"="Touchdowns",
+                        "Total Offensive Points Scored"="Total.Points",
+                        "Offensive Points Per Game"="Points.Per.Game"))
+
+
+```
+
+Row
+-----------------------
+### Statistics
+
+```{r, echo=FALSE}
+sorted_stats <- reactive({
+  sort_column <- input$Statistics
+  stats_sorted <- top25[order(top25[, sort_column], decreasing = TRUE), ]
+  return(stats_sorted)
+})
+
+
+output$table <- renderDT({
+  datatable(sorted_stats(),
+            options = list(pageLength = 10),
+            rownames = FALSE,)
+
+  
+})
+
+DTOutput("table")

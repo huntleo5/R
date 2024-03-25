@@ -1,0 +1,187 @@
+---
+title: "DSA 8030 R Project"
+author: "Huntley Oliver"
+date: "2023-10-23"
+output: 
+  html_document:
+    df_print: paged
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+![](NCAA_logo.png)
+
+# Overview
+
+In this analysis, we will explore college football data. Data will be used to explore an age old question in all levels of football; **is the quarterback really the most important position on the field?** Data from the 2022 college football season will be explored to determine how the quarterback's performance correlates to number of team wins. We will also explore rushing statistics and how they correlate to team wins as a sort of "control" in our experiment. Below we will load data for team statistics and the final AP poll rankings from the 2022 season.We will focus our analysis on the top 25 teams from 2022, as the AP top 25 is a collection of the highest performing teams of the year. Below is a quick snapshot of the datasets being used.
+```{r, warning=FALSE}
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyverse))
+suppressMessages(library(stringr))
+
+```
+
+# Data
+```{r, echo=FALSE}
+setwd("C:/Users/huntl/Desktop/Data Science/DSA 803/Projects/R Project")
+
+stats <- read.csv("College Football Team Stats 2022.csv")
+rankings <- read.csv("rankings 2022.csv")
+head(stats[, 1:5], 10)
+rankings <- rankings %>%
+  rename(Team = School)
+
+head(rankings)
+```
+There are a total of 151 variables in the total team statistics data set. For purposes of printing this report and saving space, I only printed the head and the first five variables. All of this data is valuable to some extent, but for the sake of this analysis, the data will be cleansed to only include statistics that are relevant to this scenario. We will explore the relationship between teams with high performing quarterbacks and their win totals. Below I will clean the data to create a consolidated data frame with the team statistics that we want.
+
+```{r, echo=FALSE}
+clean_stats <- stats[, c("Team", "Games", "Off.Yards", "Off.TDs", "Pass.Attempts", "Pass.Completions", "Interceptions.Thrown_x", "Pass.Yards", "Pass.Touchdowns", "Pass.Yards.Per.Game", "Rush.Attempts", "Rush.Yds", "Yards.Rush", "Rushing.TD", "Rushing.Yards.per.Game", "Touchdowns", "Total.Points", "Points.Per.Game")]
+
+head(clean_stats, 10)
+```
+As seen above, the data have been cleaned from 151 variables down to 18 variables of interest. There is an associated flex dashboard with this report that allows the user to explore all stats. For the purposes of this report, we will focus on four variables from this data frame in particular: how teams move the ball, and how team score their points. The variables used to explore how teams move the ball will be Passing Yards and Rushing Yards. The variables used to explore how teams score their points will be passing touchdowns and rushing touchdowns.
+
+The rankings data set will now be given a new column that is created called "Team Wins"
+
+```{r, echo=FALSE}
+rankings$TeamWins <- as.integer(str_extract(rankings$Record, "\\d+"))
+
+rankings[1, "Team"] <- "Georgia"
+rankings
+```
+Now that the rankings data set has a team wins column, we will join this data frame with our clean statistics data frame to pull out all of our useful team statistics for each of the top 25 teams. The top 25 data frame is below.
+```{r, echo=FALSE}
+# Could not figure out why I got so many NAs when trying to join. I think there might have been a space before team name in the clean_stats data set. I had to explicitly name every top 25 team
+clean_stats[5, "Team"] <- "Georgia"
+clean_stats[27, "Team"] <- "TCU"
+clean_stats[24, "Team"] <- "Michigan"
+clean_stats[9, "Team"] <- "Ohio State"
+clean_stats[11, "Team"] <- "Alabama"
+clean_stats[1, "Team"] <- "Tennessee"
+clean_stats[34, "Team"] <- "Penn State"
+clean_stats[2, "Team"] <- "Washington"
+clean_stats[31, "Team"] <- "Tulane"
+clean_stats[17, "Team"] <- "Utah"
+clean_stats[10, "Team"] <- "Florida State"
+clean_stats[3, "Team"] <- "USC"
+clean_stats[48, "Team"] <- "Clemson"
+clean_stats[41, "Team"] <- "Kansas State"
+clean_stats[6, "Team"] <- "Oregon"
+clean_stats[28, "Team"] <- "LSU"
+clean_stats[61, "Team"] <- "Oregon State"
+clean_stats[60, "Team"] <- "Notre Dame"
+clean_stats[95, "Team"] <- "Troy"
+clean_stats[62, "Team"] <- "Mississippi State"
+clean_stats[4, "Team"] <- "UCLA"
+clean_stats[50, "Team"] <- "Pittsburgh"
+clean_stats[73, "Team"] <- "South Carolina"
+clean_stats[53, "Team"] <- "Fresno State"
+clean_stats[35, "Team"] <- "Texas"
+
+
+top25 <- left_join(rankings, clean_stats, by="Team")
+top25
+
+```
+The above is our final data frame that will be used for the analysis. An explanation of all the variables in the data set is below: Stats being used for this analysis are **bolded**
+
+* Ranking - The team's rank in the 2022 final AP poll
+* Team - The educational institution that the team represents
+* Conference - The athletic conference the team plays in
+* Record - The team's win/loss record for the 2022 season
+* Points - Number of points received in the AP poll based on votes
+* TeamWins - Number of wins the team had in the 2022 season (extracted from the Record variable)
+* Games - Total number of games the team played in the 2022 season
+* Off.Yards - Total Offensive yards gained by the team during the 2022 season
+* Off.TDs - Total number of Offensive Touchdowns scored by the team during the 2022 season
+* Pass.Attempts - Total attempted passes by the team during the 2022 season
+* Pass.Completions - Total number of completed passes by the team during the 2022 season
+* Interceptions.Thrown.x - Total interceptions thrown by the team's quarterbacks during the 2022 season
+* **Pass.Yards** - Total Passing yards by the team during the 2022 season
+* **Pass.Touchdowns** - Total passing touchdowns by the team during the 2022 season
+* Pass.Yards.Per.Game - Average passing yards per game played by the team during the 2022 season
+* Rush.Attempts - Number of times the team ran the ball during the 2022 season
+* **Rush.Yds** - Total rushing yards by the team during the 2022 season
+* Yards.Rush - Average rushing yards per attempt by the team during the 2022 season
+* **Rushing.TD** - Total number of rushing touchdowns by the team during the 2022 season
+* Rushing.Yards.Per.Game - Average rushing yards per game played by the team during the 2022 season
+* Touchdowns - total touchdowns scored by the team during the 2022 season
+* Total.Points - total offensive points scored by the team during the 2022 season
+* Points.Per.Game - Average number of offensive points scored per game played by the team during the 2022 season
+
+
+# Exploratory Analysis
+
+The question at hand is "Is the Quarterback the most important position on the field?". Typically teams only use one quarterback, thus 95%+ of a team's passing stats come from a single player. Let's compare our top 25 team quarterback's performances to the team's corresponding win total. Below we will calculate the correlation coefficient between a team's wins, and their total passing yards, we will also calculate the correlation coefficient between team wins and rushing statistics.
+
+First, we will start with basic summary statistics of our new Top 25 data set.
+
+```{r}
+summary(top25)
+```
+We notice that the mean passing yards for teams is higher than the mean rushing yards for these teams. However, the mean rushing touchdowns scored is higher than the mean passing touchdowns scored for these teams. 
+
+In today's college football world, it is typical to pass the ball more than running the ball, which can explain the higher number of passing yards than rushing yards. Does this fully prove that the quarterback is the most important position on the field? Let's take a look at how these variables of interest correlate to a team's success.
+
+```{r, echo=FALSE}
+cor(top25$TeamWins, top25$Pass.Yards)
+cor(top25$TeamWins, top25$Rush.Yds)
+```
+The above number is the correlation coefficient between wins and passing yards, and the below number is the correlation between wins and rushing yards. It looks like 
+
+Next we will take a look at the correlation coefficient between how teams score, is there a correlation between wins and how a team scores? **Disclaimer: There is a high correlation between total points scored and team wins, however that is being left out of this analysis due to this analysis focusing on how teams score, rather than if teams score**
+
+```{r, echo=FALSE}
+cor(top25$TeamWins, top25$Pass.Touchdowns)
+cor(top25$TeamWins, top25$Rushing.TD)
+```
+The above number is the correlation between Passing Touchdowns and wins, and the bottom number is the correlation between rushing touchdowns and wins.
+
+After two correlation calculations, it appears that the highest performing teams at the college football level, actually more successful with their running game than their passing game.
+
+So far, the evidence isn't looking great for quarterbacks being the most important position on the field.
+
+Below is a visualization of the above correlations.
+```{r, echo = FALSE}
+par(mfrow = c(2, 2))
+plot(top25$TeamWins, top25$Pass.Yards, main = "Wins vs. Passing Yards", ylab = "Passing Yards", xlab = "Team Wins")
+plot(top25$TeamWins, top25$Rush.Yds, main = "Wins vs. Rushing Yards", ylab = "Rushing Yards", xlab = "Team Wins")
+plot(top25$TeamWins, top25$Pass.Touchdowns, main = "Wins vs. Passing Touchdowns", ylab = "Passing Touchdowns", xlab = "Team Wins")
+plot(top25$TeamWins, top25$Rushing.TD, main = "Wins vs. Rushing Touchdowns", ylab = "Rushing Touchdowns", xlab = "Team Wins")
+```
+BeloW are two seperate multiple regression models. One for the way teams move the ball (rushing and passing yards), and another for the way teams score (rushing and passing TDs)
+
+```{r}
+summary(lm(top25$TeamWins ~ top25$Pass.Yards + top25$Rush.Yds))
+summary(lm(top25$TeamWins ~ top25$Pass.Touchdowns + top25$Rushing.TD))
+```
+From the regression model above, it appears again, that win units increase more from the running game than the passing game. In the first model, wins increase by approximately 0.0013 for every passing yard gained, and wins increase by 0.0014 for every rushing yard gained.
+
+In the second regression model, wins increase by 0.06 for every passing touchdown scored, and wins increase by 0.11 for every rushing touchdown scored.
+
+# Summary
+
+Overall, it appears that a team's ability to run the ball, is a better overall predictor of a team's wins. Using correlation statistics, visualizing correlations, and multiple linear regression, we see that statistically, a team's running game is more important that a team's passing game. A college football team typically uses one quarterback, and usually two to three running backs. One could argue that rushing stats are more important to a college football team, but in terms of a single burden, the quarterback is more important to the team. However, statistically speaking, it appears that the **quarterback is NOT the most important position on the field**. This does not conclude that the running back is the most important position, but it does show that it is not only the quarterback that leads to a successful football team. 
+
+A major limitation of this analysis is not diving into turnover statistics. A quarterback that takes care of the football can be extremely beneficial to a football team. You could also get very granular and examine how a team calls plays on 3rd and fourt downs, and how the quarterback performs on third and fourth down. Finally, and possibly the largest limitation to this analysis; it has long been belived that both a quarterback's and running backs' success depends very heavily on the offensive line. There are very few ways to statistically track data on offensive line performance. This limits all data analysis on football. A quarterback or running back may be average, and excel to a higher level of play due to a high performing offensive line. The same goes for a running back. Therefore overall, it appears that it truly takes teamwork to make the dream work.
+
+# About the Author
+![](Huntley.Picture.png)
+
+Huntley Oliver is an aspiring data scientist and self proclaimed college football expert. If he does not know what he is talking about when it comes to college football, he will do the necessary research to discover trends and analysis in the game. He is a die hard fan of Clemson University athletics, and a graduate of the Univeristy in 2015.
+
+# References
+Data Sources
+
+* Kaggle - https://www.kaggle.com/datasets/jeffgallini/college-football-team-stats-2019
+* College Poll Archive - https://collegepollarchive.com/football/ap/seasons.cfm?seasonid=2022
+
