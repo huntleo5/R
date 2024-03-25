@@ -1,0 +1,84 @@
+---
+title: "Assignment A3 - Wrangle"
+author: "Huntley Oliver"
+date: "2023-09-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Set Working Directory and Read Data
+```{r}
+setwd("C:/Users/huntl/Desktop/Data Science/DSA 803/Module A")
+getwd()
+library(tidyverse)
+
+customers <- read_tsv("AcctAddress.txt", col_names = FALSE)
+zones <- read.csv("USPS_Zone.csv", header = TRUE)
+```
+
+#Quick View of the Data
+```{r}
+head(customers)
+head(zones)
+nrow(customers)
+nrow(zones)
+```
+We notice that there are 2000 rows in the customers file, however, we only have 1000 customers. This is because street address is on one line, and the corresponding town/state/zip are on another line. We need to manipulate the data in order to get the address all on one line.
+
+```{r}
+combined_data <- data.frame()
+
+for (i in 1:(nrow(customers) - 1)) {
+  if (i %% 2 == 1) {  #If the remainder of the row number divided by 2 is 1 (odd number),                       that row needs to be combined with the following row
+    combined_row <- c(customers[i, ], customers[i + 1, ])
+    combined_data <- rbind(combined_data, combined_row)
+  }
+}
+
+
+library(stringr)
+combined_data <- combined_data[, -3]
+combined_data <- paste(combined_data$X2, combined_data$X2.1)
+cd1 <- as.data.frame(combined_data)
+
+# Extract zip codes and create a new column
+cd1 <- cd1 %>%
+  mutate(ZipCode = str_extract(combined_data, "\\b\\d{5}(?:-\\d{4})?\\b"))
+
+cd1
+```
+Now that we have Zip codes as their own column, we can match each zip code to its corresponding USPS pricing zone. We will now go through our pricing scenarios
+
+#Let's go through each pricing plan scenario
+
+#Option 1: Flat Rate Shipping (This is solved for us in the example, but for the sake of the argument, I am putting it here)
+
+```{r}
+nrow(cd1) * 13.65
+```
+Option 1 costs a total of $13,650.
+```{r}
+colnames(zones)[colnames(zones) == "ZipCode"] <- "FirstThreeDigits"
+zones
+```
+
+#Option 2: 
+
+```{r}
+cd1 <- cd1 %>%
+  mutate(FirstThreeDigits = substr(ZipCode, 1, 3))
+
+cd2 <- cross_join(cd1, zones)
+cd2
+```
+
+```{r}
+sorted_data <- cd2 %>%
+  arrange(FirstThreeDigits.x, FirstThreeDigits.y)
+
+sorted_data
+```
+
